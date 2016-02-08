@@ -82,7 +82,9 @@ def on_message(message):
     if command =='!debug':
         if message.author.id == '123301224022933504':
             try:
-                result = eval(' '.join(words[1:]))
+                command = ' '.join(words[1:])
+                print("Evaling " + command)
+                result = eval(command)
             except Exception as e:
                 result = '{0.__name__}: {1}'.format(type(e), e)
             yield from client.send_message(message.channel, result)
