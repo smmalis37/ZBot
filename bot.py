@@ -73,6 +73,7 @@ def on_message(message):
     if command == '!refresh_roles':
         if is_admin(message.author):
             yield from client.send_message(message.channel, "Refreshing roles")
+            yield from client.send_typing(message.server)
             yield from refresh_roles(message.server)
             yield from create_roles(message.server)
             yield from client.send_message(message.channel, "Done refreshing roles")
