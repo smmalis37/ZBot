@@ -31,16 +31,27 @@ def handle_color(message):
             yield from client.replace_roles(author, *new_roles)
             yield from client.send_message(message.channel, "Changed your color to " + words[1])
 
+@client.async_event
+def on_server_role_update(before, after):
+    if (after.is_everyone):
+        yield from refresh_roles(after.server)
+            
 @asyncio.coroutine
 def refresh_roles(server):
     print("Refreshing roles for " + server.name)
     
-    everyonePerm = server.default_role.permissions
+    everyonePerm = discord.Permissions(server.default_role.permissions.value)
+    everyonePerm.read_message_history = True
     to_edit = list(filter(lambda x: x.permissions != everyonePerm, filter(lambda x: x.name in colors, server.roles)))
     
     for edit in to_edit:
         yield from client.edit_role(server, edit, permissions=everyonePerm)
         print("Edited " + edit.name)
+
+    everyonePerm.read_message_history = False
+    if (server.default_role.permissions != everyonePerm):
+        yield from client.edit_role(server, server.default_role, permissions=everyonePerm)
+        print("Edited @everyone")
         
 @asyncio.coroutine
 def create_roles(server):
@@ -65,20 +76,10 @@ def on_message(message):
     if command == '!help':
         yield from client.send_message(message.channel, "Available commands:\n!help, !color")
         if is_admin(message.author):
-            yield from client.send_message(message.channel, "Admin-only commands:\n!refresh_roles")
+            yield from client.send_message(message.channel, "Admin-only commands:\n")
     
     if command == '!color':
         yield from handle_color(message)
-
-    if command == '!refresh_roles':
-        if is_admin(message.author):
-            yield from client.send_message(message.channel, "Refreshing roles")
-            yield from client.send_typing(message.server)
-            yield from refresh_roles(message.server)
-            yield from create_roles(message.server)
-            yield from client.send_message(message.channel, "Done refreshing roles")
-        else:
-            yield from client.send_message(message.channel, "That's an admin-only command")
 
     if command =='!debug':
         if message.author.id == '123301224022933504':
@@ -88,7 +89,7 @@ def on_message(message):
                 result = eval(command)
             except Exception as e:
                 result = '{0.__name__}: {1}'.format(type(e), e)
-            yield from client.send_message(message.channel, result)
+            yield from client.send_message(message.channel, "'''" + result + "'''")
             
 @client.async_event
 def on_ready():
@@ -102,5 +103,5 @@ def on_ready():
 
 
 with open("creds") as f:
-    creds = tuple(map(lambda s: s.strip(), f.readlines()))
-client.run(creds[0],creds[1])
+    creds = f.readlines()[0].strip()
+client.run(creds)
