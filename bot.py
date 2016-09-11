@@ -3,6 +3,9 @@ import discord
 import asyncio
 
 
+friendName = "Old Friend"
+
+
 client = discord.Client()
 
 
@@ -40,64 +43,67 @@ def on_server_role_update(before, after):
 def refresh_roles(server):
     print("Refreshing roles for " + server.name)
     
-    everyonePerm = discord.Permissions(server.default_role.permissions.value)
-    everyonePerm.read_message_history = True
-    to_edit = list(filter(lambda x: x.permissions != everyonePerm, filter(lambda x: x.name in colors, server.roles)))
+    perms = discord.Permissions(server.default_role.permissions.value)
+    perms.read_message_history = True
+    to_edit = list(filter(lambda x: x.permissions != perms, filter(lambda x: x.name in colors or x.name == friendName, server.roles)))
     
     for edit in to_edit:
-        yield from client.edit_role(server, edit, permissions=everyonePerm)
+        yield from client.edit_role(server, edit, permissions=perms)
         print("Edited " + edit.name)
 
-    everyonePerm.read_message_history = False
-    if (server.default_role.permissions != everyonePerm):
-        yield from client.edit_role(server, server.default_role, permissions=everyonePerm)
+    perms.read_message_history = False
+    if (server.default_role.permissions != perms):
+        yield from client.edit_role(server, server.default_role, permissions=perms)
         print("Edited @everyone")
         
 @asyncio.coroutine
 def create_roles(server):
     print("Creating roles for " + server.name)
     
-    everyonePerm = server.default_role.permissions
     role_names = list(map(lambda r: r.name, server.roles))
     to_create = list(filter(lambda x: x not in role_names, colors))
     
     for color in to_create:
-        yield from client.create_role(server, name=color, color=getattr(discord.Color, color)(), permissions=everyonePerm)
+        yield from client.create_role(server, name=color, color=getattr(discord.Color, color)())
         print("Created " + color)
         
 def is_admin(member):
     return "Admin" in map(lambda r: r.name, member.roles)
 
+def is_friend(member):
+    return friendName in map(lambda r: r.name, member.roles)
+
 @client.async_event
 def on_message(message):
-    words = message.content.split(' ')
-    command = words[0]
-
-    if command == '!help':
-        yield from client.send_message(message.channel, "Available commands:\n!help, !color")
-        if is_admin(message.author):
-            yield from client.send_message(message.channel, "Admin-only commands:\n")
-    
-    if command == '!color':
-        yield from handle_color(message)
-
-    if command =='!debug':
-        if message.author.id == '123301224022933504':
-            try:
-                command = ' '.join(words[1:])
-                print("Evaling " + command)
-                result = eval(command)
-            except Exception as e:
-                result = '{0.__name__}: {1}'.format(type(e), e)
-            yield from client.send_message(message.channel, "'''" + result + "'''")
+    if (is_admin(message.author) or is_friend(message.author)):
+        words = message.content.split(' ')
+        command = words[0]
+        
+        if command == '!help':
+            yield from client.send_message(message.channel, "Available commands:\n!help, !color")
+            if is_admin(message.author):
+                yield from client.send_message(message.channel, "Admin-only commands:\n")
+                
+        if command == '!color':
+            yield from handle_color(message)
+                    
+        if command =='!debug':
+            if message.author.id == '123301224022933504':
+                try:
+                    command = ' '.join(words[1:])
+                    print("Evaling " + command)
+                    result = eval(command)
+                except Exception as e:
+                    result = '{0.__name__}: {1}'.format(type(e), e)
+                    yield from client.send_message(message.channel, "'''" + result + "'''")
             
 @client.async_event
 def on_ready():
     print('Logged in!')
 
     for server in client.servers:
-        yield from refresh_roles(server)
         yield from create_roles(server)
+        yield from refresh_roles(server)
         
     print('Ready')
 
