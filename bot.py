@@ -5,6 +5,7 @@ import asyncio
 friendName = "Old Friend"
 elevatorName = "Elevator"
 elevator = None
+in_elevator = False
 
 client = discord.Client()
 
@@ -92,14 +93,25 @@ async def on_message(message):
                     result = '{0.__name__}: {1}'.format(type(e), e)
                 await client.send_message(message.channel, "```" + str(result) + "```")
 
-async def create_elevator(client, server):
+@client.async_event
+async def on_voice_state_update(before, after):
     global elevator
-    voice_channel = discord.utils.get(server.channels, name=elevatorName)
-    voice_client = await client.join_voice_channel(voice_channel)
-    elevator = await voice_client.create_ytdl_player("https://www.youtube.com/watch?v=VBlFHuCzPgY")
-    elevator.volume = .3
-    elevator.start()
-                        
+    global in_elevator
+    voice_channel = discord.utils.get(after.server.channels, name=elevatorName)
+    if in_elevator and after.id == client.user.id and after.voice.voice_channel != voice_channel:
+        await client.move_member(after, voice_channel)
+    elif in_elevator and len(voice_channel.voice_members) == 1:
+        elevator.stop()
+        elevator = None
+        await client.voice_client_in(after.server).disconnect()
+        in_elevator = False
+    elif not in_elevator and len(voice_channel.voice_members) > 0:
+        in_elevator = True
+        voice_client = await client.join_voice_channel(voice_channel)
+        elevator = await voice_client.create_ytdl_player("https://www.youtube.com/watch?v=VBlFHuCzPgY")
+        elevator.volume = .2
+        elevator.start()
+
 @client.async_event
 async def on_ready():
     print('Logged in!')
@@ -107,7 +119,6 @@ async def on_ready():
     server = list(client.servers)[0]
     await create_roles(server)
     await refresh_roles(server)
-    await create_elevator(client, server)
     
     print('Ready')
 
