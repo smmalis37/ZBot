@@ -116,9 +116,9 @@ async def on_voice_state_update(before, after):
 async def on_ready():
     print('Logged in!')
 
-    server = list(client.servers)[0]
-    await create_roles(server)
-    await refresh_roles(server)
+    for server in client.servers:
+        await create_roles(server)
+        await refresh_roles(server)
     
     print('Ready')
 
