@@ -2,6 +2,10 @@
 import discord
 import asyncio
 
+ELEVATOR_MUSIC = "https://www.youtube.com/watch?v=VBlFHuCzPgY"
+
+current_track = ELEVATOR_MUSIC
+
 friendName = "Old Friend"
 elevatorName = "Elevator"
 elevator = None
@@ -31,6 +35,20 @@ async def handle_color(message):
             
             await client.replace_roles(author, *new_roles)
             await client.send_message(message.channel, "Changed your color to " + words[1])
+
+async def change_song(message):
+    global current_track
+    global elevator
+    contents = message.content.split(' ')
+    if len(contents) == 2
+        current_track = contents[1]
+        if in_elevator:
+            elevator.stop()
+            elevator = await client.voice_clients[0].create_ytdl_player(current_track)
+            elevator.volume = .2
+            elevator.start()
+    else:
+        await client.send_message(message.channel, 'The current song is : "{}"'.format(elevator.title))
 
 @client.async_event
 async def on_server_role_update(before, after):
@@ -76,12 +94,15 @@ async def on_message(message):
         command = words[0]
         
         if command == '!help':
-            await client.send_message(message.channel, "Available commands:\n!help, !color")
+            await client.send_message(message.channel, "Available commands:\n!help, !color, !song")
             if is_admin(message.author):
                 await client.send_message(message.channel, "Admin-only commands:\n")
                 
         if command == '!color':
             await handle_color(message)
+
+        if command == '!song':
+            await change_song(message)
                     
         if command =='!debug':
             if message.author.id == '123301224022933504':
@@ -97,6 +118,7 @@ async def on_message(message):
 async def on_voice_state_update(before, after):
     global elevator
     global in_elevator
+    global current_track
     voice_channel = discord.utils.get(after.server.channels, name=elevatorName)
     if in_elevator and after.id == client.user.id and after.voice.voice_channel != voice_channel:
         await client.move_member(after, voice_channel)
@@ -104,11 +126,12 @@ async def on_voice_state_update(before, after):
         elevator.stop()
         elevator = None
         await client.voice_client_in(after.server).disconnect()
+        current_track = ELEVATOR_MUSIC
         in_elevator = False
     elif not in_elevator and len(voice_channel.voice_members) > 0:
         in_elevator = True
         voice_client = await client.join_voice_channel(voice_channel)
-        elevator = await voice_client.create_ytdl_player("https://www.youtube.com/watch?v=VBlFHuCzPgY")
+        elevator = await voice_client.create_ytdl_player(current_track)
         elevator.volume = .2
         elevator.start()
 
