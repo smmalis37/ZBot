@@ -40,7 +40,7 @@ async def change_song(message):
     global current_track
     global elevator
     contents = message.content.split(' ')
-    if len(contents) == 2
+    if len(contents) == 2:
         current_track = contents[1]
         if in_elevator:
             elevator.stop()
