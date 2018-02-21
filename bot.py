@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 import discord
 import asyncio
+import random
 
 ELEVATOR_MUSIC = "https://www.youtube.com/watch?v=VBlFHuCzPgY"
 
@@ -21,7 +22,7 @@ colors.sort()
 
 async def handle_color(message):
     words = message.content.split(' ')
-    if len(words) == 1:
+    if len(words) != 2:
         await client.send_message(
                 message.channel,
                 'Available colors are:\n' + (', '.join(colors)))
@@ -43,6 +44,46 @@ async def handle_color(message):
             await client.replace_roles(author, *new_roles)
             await client.send_message(
                     message.channel, 'Changed your color to ' + words[1])
+
+async def roll(message):
+    words = message.content.split(' ')
+    if len(words) == 3:
+        try:
+            roll_min, roll_max = int(words[1]),int(words[2])
+            if roll_min <=0 or roll_max <=0 or roll_min > 9999999999 or roll_max > 9999999999 or roll_min > roll_max:
+                await client.send_message(
+                    message.channel,
+                    "Arguments must not be less than 0 or greater than 9999999999 and the minimum roll can not be greater than the maximum roll."
+                    )
+            else:
+                random_roll = (random.randint(roll_min,roll_max))
+                author = message.author
+                await client.send_message(
+                    message.channel,
+                    author.mention+" rolled a "+str(random_roll)+"."
+                    )
+        except:
+            await client.send_message(
+                message.channel,
+                "Rolling requires two integer arguments."
+            )
+    else:
+        await client.send_message(
+            message.channel,
+            "Rolling requires two integer arguments."
+        )
+
+async def coinflip(message):
+    def coinflip():
+        cf = random.randint(1,2)
+        if cf == 1: return str("heads.")
+        else: return str("tails.")
+    coinflip_return = coinflip()
+    author = message.author
+    await client.send_message(
+        message.channel,
+        author.mention+" flipped "+coinflip_return
+    )
 
 async def change_song(message):
     global current_track
@@ -68,7 +109,6 @@ async def change_song(message):
                 message.channel,
                 'Provide a YouTube URL to set the elevator song (ex. ' +
                 '`!song https://www.youtube.com/watch?v=VBlFHuCzPgY`)')
-
 
 @client.async_event
 async def on_server_role_update(before, after):
@@ -167,6 +207,11 @@ async def on_message(message):
                 await client.send_message(
                         message.channel, "```" + str(result) + "```")
 
+        if command == '!roll':
+            await roll(message)
+
+        if command == '!flip':
+            await coinflip(message)
 
 @client.async_event
 async def on_voice_state_update(before, after):
@@ -188,6 +233,7 @@ async def on_voice_state_update(before, after):
         in_elevator = True
         voice_client = await client.join_voice_channel(voice_channel)
         await start_music(voice_client)
+
 
 
 @client.async_event
