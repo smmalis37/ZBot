@@ -185,7 +185,7 @@ async def on_message(message):
         if command == '!help':
             await client.send_message(
                     message.channel,
-                    "Available commands:\n!help, !color, !song")
+                    "Available commands:\n!help, !color, !song, !roll, !flip")
             if is_admin(message.author):
                 await client.send_message(
                         message.channel, "Admin-only commands:\n")
