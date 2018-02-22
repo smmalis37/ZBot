@@ -1,0 +1,13 @@
+[package]
+name = "zbot"
+version = "0.1.0"
+authors = ["Steven Malis"]
+
+[dependencies]
+lazy_static = "1.0"
+itertools = "0.7"
+rand = "0.4"
+
+[dependencies.serenity]
+version = "0.5"
+#features = ["voice"]
