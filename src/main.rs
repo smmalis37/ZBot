@@ -1,4 +1,4 @@
-#![feature(inclusive_range_syntax)]
+#![feature(inclusive_range, inclusive_range_syntax, range_contains)]
 
 extern crate itertools;
 #[macro_use]
@@ -7,6 +7,7 @@ extern crate rand;
 extern crate serenity;
 
 use std::collections::BTreeMap;
+use std::ops::RangeInclusive;
 use itertools::Itertools;
 use rand::Rng;
 use serenity::prelude::*;
@@ -14,6 +15,7 @@ use serenity::model::prelude::*;
 
 type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
 trait Command {
+    fn required_arg_count(&self) -> RangeInclusive<usize>; //impl Range<usize>;
     fn exec(&self, ctx: &Context, msg: &Message, args: &[&str]);
 }
 
@@ -48,7 +50,15 @@ impl EventHandler for Handler {
 
             if let Some(command) = maybe_command {
                 if let Some(command_handler) = COMMAND_MAP.get(command) {
-                    command_handler.exec(&ctx, &msg, &*args);
+                    let valid_arg_range = command_handler.required_arg_count();
+                    if valid_arg_range.contains(args.len()) {
+                        command_handler.exec(&ctx, &msg, &*args);
+                    } else {
+                        msg.reply(&format!(
+                            "This command requires {} to {} arguments.",
+                            valid_arg_range.start, valid_arg_range.end
+                        )).unwrap();
+                    }
                 } else {
                     msg.reply(&format!("Unknown command: {}", command)).unwrap();
                 }
@@ -61,13 +71,11 @@ impl EventHandler for Handler {
 
 struct Help;
 impl Command for Help {
-    fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
-        if args.len() != 0 {
-            msg.reply("This command does not accept any arguments.")
-                .unwrap();
-            return;
-        }
+    fn required_arg_count(&self) -> RangeInclusive<usize> {
+        0..=0
+    }
 
+    fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
         let help_output = COMMAND_MAP
             .keys()
             .intersperse(&", !")
@@ -81,13 +89,11 @@ impl Command for Help {
 
 struct Flip;
 impl Command for Flip {
-    fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
-        if args.len() != 0 {
-            msg.reply("This command does not accept any arguments.")
-                .unwrap();
-            return;
-        }
+    fn required_arg_count(&self) -> RangeInclusive<usize> {
+        0..=0
+    }
 
+    fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
         if rand::thread_rng().gen() {
             msg.reply("Heads!").unwrap();
         } else {
@@ -98,6 +104,10 @@ impl Command for Flip {
 
 struct Roll;
 impl Command for Roll {
+    fn required_arg_count(&self) -> RangeInclusive<usize> {
+        0..=1
+    }
+
     fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
         let upper_bound = if args.len() == 0 {
             6
@@ -109,9 +119,7 @@ impl Command for Roll {
                 return;
             }
         } else {
-            msg.reply("This command only accepts one argument.")
-                .unwrap();
-            return;
+            unreachable!();
         };
 
         if upper_bound <= 0 {
