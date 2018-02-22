@@ -7,6 +7,8 @@ extern crate rand;
 extern crate serenity;
 
 use std::collections::BTreeMap;
+use std::fs::File;
+use std::io::Read;
 use std::ops::RangeInclusive;
 use itertools::Itertools;
 use rand::Rng;
@@ -30,8 +32,10 @@ lazy_static! {
 }
 
 fn main() {
-    let creds = "NDE2MDA0Nzc4NTg2NDA2OTEy.DW-KXw.G6PG3xN2EvrukNilq4iSdPmx2bU";
-    let mut client = Client::new(creds, Handler).unwrap();
+    let mut creds_file = File::open("creds").unwrap();
+    let mut creds = String::new();
+    creds_file.read_to_string(&mut creds).unwrap();
+    let mut client = Client::new(&creds, Handler).unwrap();
     client.start().unwrap();
 }
 
