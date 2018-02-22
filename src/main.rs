@@ -13,11 +13,11 @@ use rand::Rng;
 use serenity::prelude::*;
 use serenity::model::prelude::*;
 
-type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
 trait Command {
     fn required_arg_count(&self) -> RangeInclusive<usize>; //impl Range<usize>;
     fn exec(&self, ctx: &Context, msg: &Message, args: &[&str]);
 }
+type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
 
 lazy_static! {
     static ref COMMAND_MAP: CommandMap = {
@@ -36,7 +36,6 @@ fn main() {
 }
 
 struct Handler;
-
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, _: Ready) {
         ctx.set_presence(Some(Game::playing("Rust")), OnlineStatus::Online)
