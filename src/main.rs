@@ -1,5 +1,6 @@
-#![feature(inclusive_range, inclusive_range_syntax, range_contains)]
+#![feature(inclusive_range, inclusive_range_fields, range_contains)]
 
+extern crate dotenv;
 extern crate itertools;
 #[macro_use]
 extern crate lazy_static;
@@ -7,9 +8,10 @@ extern crate rand;
 extern crate serenity;
 
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::Read;
+use std::env;
 use std::ops::RangeInclusive;
+
+use dotenv::dotenv;
 use itertools::Itertools;
 use rand::Rng;
 use serenity::prelude::*;
@@ -32,9 +34,10 @@ lazy_static! {
 }
 
 fn main() {
-    let mut creds_file = File::open("creds").unwrap();
-    let mut creds = String::new();
-    creds_file.read_to_string(&mut creds).unwrap();
+    dotenv().ok();
+
+    let creds = env::var("Z_CREDENTIALS")
+        .expect("Unspecified credentials: set Z_CREDENTIALS in the environment (or in `.env`).");
     let mut client = Client::new(&creds, Handler).unwrap();
     client.start().unwrap();
 }

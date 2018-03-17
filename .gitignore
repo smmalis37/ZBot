@@ -17,7 +17,9 @@
 .history
 
 # Credentials file
+# `creds` is legacy
 creds
+.env
 
 /target/
 **/*.rs.bk
