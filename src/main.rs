@@ -19,7 +19,7 @@ use serenity::prelude::*;
 use serenity::model::prelude::*;
 
 trait Command {
-    fn required_arg_count(&self) -> RangeInclusive<usize>; //impl RangeArgument<usize>;
+    fn required_arg_count(&self) -> &RangeInclusive<usize>; //&RangeArgument<usize>;
     fn exec(&self, ctx: &Context, msg: &Message, args: &[&str]);
 }
 type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
@@ -79,8 +79,8 @@ impl EventHandler for Handler {
 
 struct Help;
 impl Command for Help {
-    fn required_arg_count(&self) -> RangeInclusive<usize> {
-        0..=0
+    fn required_arg_count(&self) -> &RangeInclusive<usize> {
+        &(0..=0)
     }
 
     fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
@@ -97,8 +97,8 @@ impl Command for Help {
 
 struct Flip;
 impl Command for Flip {
-    fn required_arg_count(&self) -> RangeInclusive<usize> {
-        0..=0
+    fn required_arg_count(&self) -> &RangeInclusive<usize> {
+        &(0..=0)
     }
 
     fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
@@ -112,8 +112,8 @@ impl Command for Flip {
 
 struct Roll;
 impl Command for Roll {
-    fn required_arg_count(&self) -> RangeInclusive<usize> {
-        0..=1
+    fn required_arg_count(&self) -> &RangeInclusive<usize> {
+        &(0..=1)
     }
 
     fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
