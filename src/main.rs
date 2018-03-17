@@ -1,4 +1,4 @@
-#![feature(inclusive_range, inclusive_range_fields, range_contains)]
+#![feature(inclusive_range_fields, range_contains)]
 
 extern crate dotenv;
 extern crate itertools;
