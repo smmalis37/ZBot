@@ -18,7 +18,7 @@ use serenity::prelude::*;
 use serenity::model::prelude::*;
 
 trait Command {
-    fn required_arg_count(&self) -> RangeInclusive<usize>; //impl Range<usize>;
+    fn required_arg_count(&self) -> RangeInclusive<usize>; //impl RangeArgument<usize>;
     fn exec(&self, ctx: &Context, msg: &Message, args: &[&str]);
 }
 type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
