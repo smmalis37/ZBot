@@ -34,7 +34,7 @@ lazy_static! {
 }
 
 fn main() {
-    dotenv().ok();
+    let _ = dotenv();
 
     let creds = env::var("Z_CREDENTIALS")
         .expect("Unspecified credentials: set Z_CREDENTIALS in the environment (or in `.env`).");
