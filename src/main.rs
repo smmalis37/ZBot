@@ -1,4 +1,4 @@
-#![feature(inclusive_range_fields, range_contains)]
+#![feature(collections_range, range_contains)]
 
 extern crate dotenv;
 extern crate itertools;
@@ -8,6 +8,7 @@ extern crate rand;
 extern crate serenity;
 
 use std::collections::BTreeMap;
+use std::collections::range::RangeArgument;
 use std::env;
 use std::ops::RangeInclusive;
 
@@ -61,8 +62,9 @@ impl EventHandler for Handler {
                         command_handler.exec(&ctx, &msg, &*args);
                     } else {
                         msg.reply(&format!(
-                            "This command requires {} to {} arguments.",
-                            valid_arg_range.start, valid_arg_range.end
+                            "This command requires {:?} to {:?} arguments.",
+                            valid_arg_range.start(),
+                            valid_arg_range.end()
                         )).unwrap();
                     }
                 } else {
