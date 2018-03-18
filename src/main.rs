@@ -50,7 +50,7 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        if msg.content.chars().next() == Some('!') {
+        if msg.content.starts_with('!') {
             let mut tokens = msg.content[1..].split_whitespace();
             let maybe_command = tokens.next();
             let args = tokens.collect::<Vec<_>>();
@@ -117,7 +117,7 @@ impl Command for Roll {
     }
 
     fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
-        let upper_bound = if args.len() == 0 {
+        let upper_bound = if args.is_empty() {
             6
         } else if args.len() == 1 {
             if let Ok(num) = args[0].parse() {
