@@ -1,38 +1,19 @@
-#![feature(collections_range, range_contains)]
-
 extern crate dotenv;
-extern crate itertools;
-#[macro_use]
-extern crate lazy_static;
 extern crate rand;
 extern crate serenity;
 
-use std::collections::BTreeMap;
-use std::collections::range::RangeArgument;
 use std::env;
-use std::ops::RangeInclusive;
+use std::sync::Arc;
 
 use dotenv::dotenv;
-use itertools::Itertools;
 use rand::Rng;
-use serenity::prelude::*;
+use serenity::framework::standard::*;
+use serenity::framework::StandardFramework;
 use serenity::model::prelude::*;
+use serenity::prelude::*;
 
-trait Command {
-    fn required_arg_count(&self) -> &RangeInclusive<usize>; //&RangeArgument<usize>;
-    fn exec(&self, ctx: &Context, msg: &Message, args: &[&str]);
-}
-type CommandMap = BTreeMap<&'static str, Box<Command + Sync>>;
-
-lazy_static! {
-    static ref COMMAND_MAP: CommandMap = {
-        let mut commands = CommandMap::new();
-        commands.insert("help", Box::new(Help));
-        commands.insert("flip", Box::new(Flip));
-        commands.insert("roll", Box::new(Roll));
-        commands
-    };
-}
+struct Handler;
+impl EventHandler for Handler {}
 
 fn main() {
     let _ = dotenv();
@@ -40,102 +21,76 @@ fn main() {
     let creds = env::var("Z_CREDENTIALS")
         .expect("Unspecified credentials: set Z_CREDENTIALS in the environment (or in `.env`).");
     let mut client = Client::new(&creds, Handler).unwrap();
+    client.with_framework(
+        StandardFramework::new()
+            .configure(|c| c.depth(1).prefix("!"))
+            .group("Rng", |g| g.cmd("flip", Flip).cmd("roll", Roll))
+            .on_dispatch_error(dispatch_error_handler)
+            .unrecognised_command(unrecognised_command_handler)
+            .customised_help(help_commands::plain, |h| {
+                h.striked_commands_tip(None)
+                    .dm_and_guilds_text("Everywhere")
+                    .guild_only_text("Only in text channels")
+            }),
+    );
     client.start().unwrap();
 }
 
-struct Handler;
-impl EventHandler for Handler {
-    fn ready(&self, ctx: Context, _: Ready) {
-        ctx.set_presence(Some(Game::playing("Rust")), OnlineStatus::Online)
-    }
-
-    fn message(&self, ctx: Context, msg: Message) {
-        if msg.content.starts_with('!') {
-            let mut tokens = msg.content[1..].split_whitespace();
-            let maybe_command = tokens.next();
-            let args = tokens.collect::<Vec<_>>();
-
-            if let Some(command) = maybe_command {
-                if let Some(command_handler) = COMMAND_MAP.get(command) {
-                    let valid_arg_range = command_handler.required_arg_count();
-                    if valid_arg_range.contains(args.len()) {
-                        command_handler.exec(&ctx, &msg, &*args);
-                    } else {
-                        msg.reply(&format!(
-                            "This command requires {:?} to {:?} arguments.",
-                            valid_arg_range.start(),
-                            valid_arg_range.end()
-                        )).unwrap();
-                    }
-                } else {
-                    msg.reply(&format!("Unknown command: {}", command)).unwrap();
-                }
-            } else {
-                msg.reply("No command specified.").unwrap();
-            }
-        }
-    }
+fn dispatch_error_handler(_ctx: Context, msg: Message, err: DispatchError) {
+    msg.reply(&format!("{:?}", err)).unwrap();
 }
 
-struct Help;
-impl Command for Help {
-    fn required_arg_count(&self) -> &RangeInclusive<usize> {
-        &(0..=0)
-    }
-
-    fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
-        let help_output = COMMAND_MAP
-            .keys()
-            .intersperse(&", !")
-            .fold("Available commands:\n!".to_owned(), |output, command| {
-                output + command
-            });
-
-        msg.channel_id.say(&help_output).unwrap();
-    }
+fn unrecognised_command_handler(_ctx: &mut Context, msg: &Message, cmd: &str) {
+    msg.reply(&format!("{} is not a command.", cmd)).unwrap();
 }
 
 struct Flip;
 impl Command for Flip {
-    fn required_arg_count(&self) -> &RangeInclusive<usize> {
-        &(0..=0)
+    fn options(&self) -> Arc<CommandOptions> {
+        let mut options = CommandOptions::default();
+        options.desc = Some("Flips a coin.".to_owned());
+        options.min_args = Some(0);
+        options.max_args = Some(0);
+        Arc::new(options)
     }
 
-    fn exec(&self, _ctx: &Context, msg: &Message, _args: &[&str]) {
-        if rand::thread_rng().gen() {
-            msg.reply("Heads!").unwrap();
+    fn execute(&self, _ctx: &mut Context, msg: &Message, _args: Args) -> Result<(), CommandError> {
+        let result = if rand::thread_rng().gen() {
+            "Heads!"
         } else {
-            msg.reply("Tails!").unwrap();
-        }
+            "Tails!"
+        };
+
+        msg.reply(result).unwrap();
+        Ok(())
     }
 }
 
 struct Roll;
 impl Command for Roll {
-    fn required_arg_count(&self) -> &RangeInclusive<usize> {
-        &(0..=1)
+    fn options(&self) -> Arc<CommandOptions> {
+        let mut options = CommandOptions::default();
+        options.desc = Some("Rolls a die.".to_owned());
+        options.min_args = Some(0);
+        options.max_args = Some(1);
+        Arc::new(options)
     }
 
-    fn exec(&self, _ctx: &Context, msg: &Message, args: &[&str]) {
-        let upper_bound = if args.is_empty() {
-            6
-        } else if args.len() == 1 {
-            if let Ok(num) = args[0].parse() {
-                num
-            } else {
-                msg.reply("That is not a number.").unwrap();
-                return;
-            }
-        } else {
-            unreachable!();
+    fn execute(
+        &self,
+        _ctx: &mut Context,
+        msg: &Message,
+        mut args: Args,
+    ) -> Result<(), CommandError> {
+        let upper_bound = match args.single() {
+            Ok(num) => Ok(num),
+            Err(ArgError::Eos) => Ok(6),
+            Err(ArgError::Parse(err)) => Err(CommandError(format!("{}", err))),
         };
 
-        if upper_bound <= 0 {
-            msg.reply("The upper bound must be a positive number.")
-                .unwrap();
-        } else {
-            let result = rand::thread_rng().gen_range(0, upper_bound) + 1;
+        upper_bound.map(|up| {
+            let result = rand::thread_rng().gen_range(0, up) + 1;
             msg.reply(&format!("{}", result)).unwrap();
-        }
+        })
     }
 }
