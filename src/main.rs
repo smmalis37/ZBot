@@ -36,11 +36,11 @@ fn main() {
     client.start().unwrap();
 }
 
-fn dispatch_error_handler(_ctx: Context, msg: Message, err: DispatchError) {
+fn dispatch_error_handler(_: Context, msg: Message, err: DispatchError) {
     msg.reply(&format!("{:?}", err)).unwrap();
 }
 
-fn unrecognised_command_handler(_ctx: &mut Context, msg: &Message, cmd: &str) {
+fn unrecognised_command_handler(_: &mut Context, msg: &Message, cmd: &str) {
     msg.reply(&format!("{} is not a command.", cmd)).unwrap();
 }
 
@@ -54,7 +54,7 @@ impl Command for Flip {
         Arc::new(options)
     }
 
-    fn execute(&self, _ctx: &mut Context, msg: &Message, _args: Args) -> Result<(), CommandError> {
+    fn execute(&self, _: &mut Context, msg: &Message, _: Args) -> Result<(), CommandError> {
         let result = if rand::thread_rng().gen() {
             "Heads!"
         } else {
@@ -76,12 +76,7 @@ impl Command for Roll {
         Arc::new(options)
     }
 
-    fn execute(
-        &self,
-        _ctx: &mut Context,
-        msg: &Message,
-        mut args: Args,
-    ) -> Result<(), CommandError> {
+    fn execute(&self, _: &mut Context, msg: &Message, mut args: Args) -> Result<(), CommandError> {
         let upper_bound = match args.single() {
             Ok(num) => Ok(num),
             Err(ArgError::Eos) => Ok(6),
